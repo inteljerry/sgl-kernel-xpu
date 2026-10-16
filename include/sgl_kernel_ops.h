@@ -772,6 +772,19 @@ void apply_shuffle_mul_sum(
     double routed_scaling_factor,
     const std::optional<torch::Tensor>& factors);
 
+void moe_w4a16_decode_gemv(
+    torch::Tensor& output,
+    const torch::Tensor& hidden_states,
+    const torch::Tensor& w13,
+    const torch::Tensor& w13_scale,
+    const torch::Tensor& w2,
+    const torch::Tensor& w2_scale,
+    const torch::Tensor& topk_weights,
+    const torch::Tensor& topk_ids,
+    torch::Tensor& intermediate,
+    double routed_scaling_factor,
+    double swiglu_limit);
+
 void cutlass_fp4_group_mm(
     torch::Tensor& output,
     const torch::Tensor& a,
