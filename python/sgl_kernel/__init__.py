@@ -127,6 +127,7 @@ from sgl_kernel.mhc import (
 
 fused_hc_head = torch.ops.sgl_kernel.fused_hc_head.default
 mhc_fused_post_pre = torch.ops.sgl_kernel.mhc_fused_post_pre.default
+mhc_fused_post_pre_small_t = torch.ops.sgl_kernel.mhc_fused_post_pre_small_t.default
 from sgl_kernel.moe import (
     apply_shuffle_mul_sum,
     biased_topk,

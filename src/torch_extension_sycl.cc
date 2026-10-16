@@ -500,6 +500,14 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
       "Tensor? norm_weight=None, float? norm_eps=None) -> (Tensor, Tensor, Tensor, Tensor)");
   m.impl("mhc_fused_post_pre", torch::kXPU, &mhc_fused_post_pre);
 
+  /* MHC FUSED POST+PRE, SMALL-T (decode, T <= 8; other shapes run mhc_fused_post_pre) */
+  m.def(
+      "mhc_fused_post_pre_small_t(Tensor x, Tensor residual, Tensor post_layer_mix, Tensor comb_res_mix, "
+      "Tensor fn, Tensor hc_scale, Tensor hc_base, float rms_eps=1e-6, float hc_pre_eps=1e-6, "
+      "float hc_sinkhorn_eps=1e-6, float hc_post_mult_value=2.0, int sinkhorn_repeat=20, int n_splits=0, "
+      "Tensor? norm_weight=None, float? norm_eps=None) -> (Tensor, Tensor, Tensor, Tensor)");
+  m.impl("mhc_fused_post_pre_small_t", torch::kXPU, &mhc_fused_post_pre_small_t);
+
   /*
    * From LoRA
    */

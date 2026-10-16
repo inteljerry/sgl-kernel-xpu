@@ -864,6 +864,27 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mhc_fused_post_pre(
     std::optional<double> norm_eps = std::nullopt);
 
 /*
+ * mhc_fused_post_pre for decode batches (T <= 8): hidden-sliced post/mix kernel
+ * plus a per-slice pre kernel. Other shapes run mhc_fused_post_pre.
+ */
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> mhc_fused_post_pre_small_t(
+    const at::Tensor& x,
+    const at::Tensor& residual,
+    const at::Tensor& post_layer_mix,
+    const at::Tensor& comb_res_mix,
+    const at::Tensor& fn,
+    const at::Tensor& hc_scale,
+    const at::Tensor& hc_base,
+    double rms_eps = 1e-6,
+    double hc_pre_eps = 1e-6,
+    double hc_sinkhorn_eps = 1e-6,
+    double hc_post_mult_value = 2.0,
+    int64_t sinkhorn_repeat = 20,
+    int64_t n_splits = 0,
+    std::optional<at::Tensor> norm_weight = std::nullopt,
+    std::optional<double> norm_eps = std::nullopt);
+
+/*
  * From csrc/speculative
  */
 void tree_speculative_sampling_target_only(
