@@ -868,3 +868,70 @@ def fused_experts(
     )
 
     return out_hidden_states
+
+
+def moe_w4a16_decode_gemv(
+    hidden_states: torch.Tensor,
+    w1: torch.Tensor,
+    w2: torch.Tensor,
+    topk_weights: torch.Tensor,
+    topk_ids: torch.Tensor,
+    w1_scale: torch.Tensor,
+    w2_scale: torch.Tensor,
+    routed_scaling_factor: Optional[float] = None,
+    swiglu_limit: float = 10.0,
+) -> torch.Tensor:
+    """Decode-batch MXFP4 W4A16 routed-expert MoE as two GEMV kernels.
+
+    Same result as fused_experts(hidden_states, w1, w2, topk_weights,
+    topk_ids, activation="silu", use_mxfp4_w4a16=True, w1_scale=w1_scale,
+    w2_scale=w2_scale, routed_scaling_factor=routed_scaling_factor,
+    swiglu_limit=swiglu_limit) with the same bf16 rounding points (GEMM1
+    output, activated intermediate, GEMM2 output, combined output); only the
+    fp32 summation order inside the dot products differs.
+
+    Kernel 1 streams the gate and up rows of the active experts only (each
+    active expert once per two of its routes, work spread over every gate-row
+    block) and applies the clamped SwiGLU in registers. Kernel 2 computes the down
+    projection per (token, row block) over the token's experts in topk order
+    and applies the routing weights, so there is no scatter, no separate
+    activation or combine kernel, and no device-side counter. Safe to capture
+    in an XPU graph.
+
+    Limits: bfloat16 activations; T * topk <= 64; topk 6 or 8; intermediate
+    size per partition 256 or 512; hidden size a multiple of 512; MXFP4 group
+    size 32; no biases.
+
+    - hidden_states [T, H] bfloat16.
+    - w1 [E, 2I, H/2] int8/uint8 packed E2M1, gate rows first then up rows.
+    - w2 [E, H, I/2] int8/uint8 packed E2M1.
+    - w1_scale [E, 2I, H/32], w2_scale [E, H, I/32]: uint8 or float8_e8m0fnu.
+    - topk_weights [T, topk] float32 or bfloat16; topk_ids [T, topk] int32/int64.
+    """
+    num_tokens = hidden_states.shape[0]
+    out = torch.empty_like(hidden_states)
+    if num_tokens == 0:
+        return out
+    topk_ids = topk_ids.contiguous()
+    topk_weights = topk_weights.contiguous()
+    intermediate = _get_moe_ws(
+        "decode_gemv_intermediate",
+        (topk_ids.numel(), w1.shape[1] // 2),
+        hidden_states.dtype,
+        hidden_states.device,
+    )
+    rsf = 1.0 if routed_scaling_factor is None else routed_scaling_factor
+    torch.ops.sgl_kernel.moe_w4a16_decode_gemv.default(
+        out,
+        hidden_states,
+        w1,
+        w1_scale,
+        w2,
+        w2_scale,
+        topk_weights,
+        topk_ids,
+        intermediate,
+        rsf,
+        swiglu_limit,
+    )
+    return out

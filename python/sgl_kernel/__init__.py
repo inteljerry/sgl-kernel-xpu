@@ -138,6 +138,7 @@ from sgl_kernel.moe import (
     moe_fused_gate,
     moe_sum,
     moe_sum_reduce,
+    moe_w4a16_decode_gemv,
     prepare_moe_input,
     scatter_tokens_to_experts,
     swiglu_gpt_oss_sigmoid_alpha,

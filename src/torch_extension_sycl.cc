@@ -227,6 +227,11 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
       "apply_shuffle_mul_sum(Tensor input, Tensor! output, Tensor permutation, float routed_scaling_factor, Tensor? "
       "factors) -> ()");
   m.impl("apply_shuffle_mul_sum", torch::kXPU, &apply_shuffle_mul_sum);
+  m.def(
+      "moe_w4a16_decode_gemv(Tensor! output, Tensor hidden_states, Tensor w13, Tensor w13_scale, Tensor w2, Tensor "
+      "w2_scale, Tensor topk_weights, Tensor topk_ids, Tensor! intermediate, float routed_scaling_factor, float "
+      "swiglu_limit) -> ()");
+  m.impl("moe_w4a16_decode_gemv", torch::kXPU, &moe_w4a16_decode_gemv);
 #endif  // USE_MOE
 
   m.def("merge_state_v2(Tensor v_a, Tensor s_a, Tensor v_b, Tensor s_b, Tensor! v_merged, Tensor! s_merged) -> ()");
